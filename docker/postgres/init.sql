@@ -91,3 +91,4 @@ INSERT INTO payment_service.customer_balances (customer_id, balance)
 VALUES ('TEST-USER-01', 5000.00),
        ('RICH-KID', 1000000.00),
        ('POOR-USER', 10.00);
+

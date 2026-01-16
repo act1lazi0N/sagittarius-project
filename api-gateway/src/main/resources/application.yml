@@ -37,6 +37,12 @@ spring:
               args:
                 name: paymentCircuitBreaker
                 fallbackUri: forward:/fallback/payment
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8181/realms/sagittarius-realm
+          jwk-set-uri: http://localhost:8181/realms/sagittarius-realm/protocol/openid-connect/certs
 
 management:
   tracing:
