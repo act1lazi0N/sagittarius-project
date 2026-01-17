@@ -22,7 +22,7 @@ spring:
         - id: inventory-service
           uri: lb://INVENTORY-SERVICE
           predicates:
-            - Path=/api/v1/products/**
+            - Path=/api/v1/inventory/**
           filters:
             - name: CircuitBreaker
               args:
