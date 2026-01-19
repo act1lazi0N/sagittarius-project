@@ -2,7 +2,8 @@ package com.sagittarius.order.adapter.kafka;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.sagittarius.order.adapter.persistence.entity.OrderEntity;
+import com.sagittarius.order.adapter.persistence.entity.Order;
+import com.sagittarius.order.adapter.persistence.entity.OrderStatus;
 import com.sagittarius.order.adapter.persistence.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,22 +35,22 @@ public class PaymentEventConsumer {
             String payloadStr = rootNode.get("payload").asText();
 
             JsonNode payload = objectMapper.readTree(payloadStr);
-            String orderId = payload.get("orderId").asText();
+            String orderNumber = payload.get("orderId").asText();
 
-            OrderEntity order = orderRepository.findById(UUID.fromString(orderId))
+            Order order = orderRepository.findByOrderNumber(orderNumber)
                     .orElse(null);
 
             if (order == null) {
-                log.warn("Order not found: {}", orderId);
+                log.warn("Order not found with number: {}", orderNumber);
                 return;
             }
 
             if ("PaymentProcessed".equals(eventType)) {
-                order.setStatus("COMPLETED");
-                log.info("Order {} COMPLETED successfully!", orderId);
+                order.setStatus(OrderStatus.PAID);
+                log.info("Order {} updated to PAID", orderNumber);
             } else if ("PaymentFailed".equals(eventType)) {
-                order.setStatus("CANCELLED");
-                log.info("Order {} CANCELLED due to payment failure.", orderId);
+                order.setStatus(OrderStatus.CANCELLED);
+                log.info("Order {} updated to CANCELLED due to payment failure", orderNumber);
             }
 
             orderRepository.save(order);

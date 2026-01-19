@@ -1,6 +1,6 @@
 package com.sagittarius.order.infrastructure.scheduler;
 
-import com.sagittarius.order.adapter.persistence.entity.OutboxEntity;
+import com.sagittarius.order.adapter.persistence.entity.Outbox;
 import com.sagittarius.order.adapter.persistence.repository.OutboxRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,7 +19,7 @@ public class OutboxPublisherScheduler {
 
     @Scheduled(fixedRate = 2000)
     public void publishOutboxEvents() {
-        List<OutboxEntity> events = outboxRepository.findTop50ByOrderByCreatedAtAsc();
+        List<Outbox> events = outboxRepository.findTop50ByOrderByCreatedAtAsc();
 
         if (events.isEmpty()) {
             return;
@@ -27,7 +27,7 @@ public class OutboxPublisherScheduler {
 
         log.debug("Found {} events in outbox. Starting processing...", events.size());
 
-        for (OutboxEntity event : events) {
+        for (Outbox event : events) {
             try {
                 String topic = event.getAggregateType().toLowerCase() + "-events";
                 String key = event.getAggregateId();

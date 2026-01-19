@@ -6,7 +6,7 @@ spring:
     name: order-service
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/sagittarius_db
+    url: jdbc:postgresql://localhost:5432/order_service_db
     username: admin
     password: password
     driver-class-name: org.postgresql.Driver
@@ -17,8 +17,8 @@ spring:
       ddl-auto: validate
     properties:
       hibernate:
-        default_schema: order_service
         show_sql: false
+        format_sql: true
 
   kafka:
     bootstrap-servers: localhost:9092
@@ -31,6 +31,10 @@ spring:
       retries: 3
       properties:
         max.block.ms: 5000
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
 
 management:
   tracing:

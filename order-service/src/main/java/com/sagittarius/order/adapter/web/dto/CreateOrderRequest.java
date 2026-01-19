@@ -1,21 +1,30 @@
 package com.sagittarius.order.adapter.web.dto;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.*;
 import lombok.Data;
-import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
+
 import java.math.BigDecimal;
 import java.util.List;
 
 @Data
 public class CreateOrderRequest {
-   @NotBlank(message = "Customer ID is required")
+   @NotBlank(message = "Customer ID không được để trống")
    private String customerId;
 
-   @DecimalMin(value = "0.01", message = "Amount must be greater than 0")
+   @NotBlank(message = "Email không được để trống")
+   @Email(message = "Email không đúng định dạng")
+   private String email;
+
+   @NotBlank(message = "Địa chỉ giao hàng không được để trống")
+   private String shippingAddress;
+
+   @NotNull(message = "Tổng tiền không được để trống")
+   @Positive(message = "Tổng tiền phải lớn hơn 0")
    private BigDecimal amount;
 
-   @NotEmpty(message = "Order must have at least 1 item")
+   @NotEmpty(message = "Giỏ hàng không được để trống")
+   @Valid
    private List<OrderItemRequest> items;
 
    @Data
