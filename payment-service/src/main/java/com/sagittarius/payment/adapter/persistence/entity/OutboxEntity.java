@@ -1,16 +1,13 @@
 package com.sagittarius.payment.adapter.persistence.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "outbox_events", schema = "payment_service")
+@Table(name = "t_outbox_events")
 @Getter
 @Setter
 @Builder
@@ -32,6 +29,11 @@ public class OutboxEntity {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String payload;
 
-    @Column(name = "created_at")
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
+
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = LocalDateTime.now();
+    }
 }

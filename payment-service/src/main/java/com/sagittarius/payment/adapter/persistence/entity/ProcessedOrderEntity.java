@@ -1,16 +1,13 @@
 package com.sagittarius.payment.adapter.persistence.entity;
 
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "processed_orders", schema = "payment_service")
+@Table(name = "t_processed_orders")
 @Getter
 @Setter
 @Builder
@@ -21,6 +18,11 @@ public class ProcessedOrderEntity {
     @Column(name = "order_id")
     private String orderId;
 
-    @Column(name = "created_at")
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
+
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = LocalDateTime.now();
+    }
 }

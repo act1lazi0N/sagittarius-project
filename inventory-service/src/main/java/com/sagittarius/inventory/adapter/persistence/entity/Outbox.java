@@ -1,4 +1,4 @@
-package com.sagittarius.order.adapter.persistence.entity;
+package com.sagittarius.inventory.adapter.persistence.entity;
 
 import jakarta.persistence.*;
 import lombok.*;

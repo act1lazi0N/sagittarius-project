@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -28,6 +29,7 @@ public class PaymentService {
     private final ProcessedOrderRepository processedOrderRepository;
     private final OutboxRepository outboxRepository;
     private final ObjectMapper objectMapper;
+    private final OutboxService outboxService;
 
     @Transactional
     @SneakyThrows
@@ -36,44 +38,43 @@ public class PaymentService {
             log.warn("Payment for Order {} already processed.", orderId);
             return;
         }
+        try {
+            CustomerBalanceEntity wallet = balanceRepository.findById(customerId).orElse(null);
 
-        CustomerBalanceEntity balanceEntity = balanceRepository.findByIdAndLock(customerId).orElse(null);
-        boolean isSuccess = false;
-        String status = "FAILED";
+            boolean isSuccess = false;
+            String reason = "";
 
-        if (balanceEntity != null && balanceEntity.getBalance().compareTo(amount) >= 0) {
-            balanceEntity.setBalance(balanceEntity.getBalance().subtract(amount));
-            balanceRepository.save(balanceEntity);
-            isSuccess = true;
-            status = "COMPLETED";
-            log.info("Payment success for Order {}. Deducted {}. New balance: {}", orderId, amount, balanceEntity.getBalance());
-        } else {
-            log.warn("Insufficient fund for Order {}. Customer: {}. Amount: {}", orderId, customerId, amount);
+            if (wallet != null && wallet.getBalance().compareTo(amount) >= 0) {
+                wallet.setBalance(wallet.getBalance().subtract(amount));
+                balanceRepository.save(wallet);
+                isSuccess = true;
+                log.info("Payment success for Order {}. Deducted {}. New balance: {}", orderId, amount, wallet.getBalance());
+            } else {
+                log.warn("Insufficient fund for Order {}. Customer: {}. Amount: {}", orderId, customerId, amount);
+            }
+            PaymentEntity payment = PaymentEntity.builder()
+                    .id(UUID.randomUUID())
+                    .orderId(orderId)
+                    .customerId(customerId)
+                    .amount(amount)
+                    .status(isSuccess ? "SUCCESS" : "FAILED")
+                    .createdAt(LocalDateTime.now())
+                    .build();
+            paymentRepository.save(payment);
+
+            if (isSuccess) {
+                outboxService.saveEvent(orderId, "PaymentCompleted", Map.of("paymentId", payment.getId()));
+                log.info("Payment SUCCESS for order {}. Deducted {}", orderId, amount);
+            } else {
+                outboxService.saveEvent(orderId, "PaymentFailed", Map.of("reason", reason));
+                log.warn("Payment FAILED for order {}. Reason: {}", orderId, reason);
+            }
+
+            processedOrderRepository.save(new ProcessedOrderEntity(orderId, LocalDateTime.now()));
         }
-
-        PaymentEntity payment = PaymentEntity.builder()
-                .id(UUID.randomUUID())
-                .orderId(orderId)
-                .customerId(customerId)
-                .amount(amount)
-                .status(status)
-                .createdAt(LocalDateTime.now())
-                .build();
-        paymentRepository.save(payment);
-
-        String eventType = isSuccess ? "PaymentProcessed" : "PaymentFailed";
-        var payload = new PaymentEventPayload(orderId, status);
-
-        OutboxEntity outbox = OutboxEntity.builder()
-                .id(UUID.randomUUID())
-                .aggregateType("PAYMENT")
-                .aggregateId(orderId)
-                .type(eventType)
-                .payload(objectMapper.writeValueAsString(payload))
-                .createdAt(LocalDateTime.now())
-                .build();
-        outboxRepository.save(outbox);
-        processedOrderRepository.save(new ProcessedOrderEntity(orderId, LocalDateTime.now()));
+        catch (Exception ex) {
+            log.error("Error processing payment for order {}", orderId, ex);
+            throw ex; // Rollback transaction
+        }
     }
-    record PaymentEventPayload(String orderId, String status) {}
 }

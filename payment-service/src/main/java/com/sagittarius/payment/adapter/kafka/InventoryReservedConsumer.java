@@ -25,26 +25,28 @@ public class InventoryReservedConsumer {
        try
        {
            JsonNode rootNode = objectMapper.readTree(message);
-           if (!rootNode.has("type") || !rootNode.has("payload")) {
-               log.warn("Invalid message structure. Missing 'type' or 'payload'");
+           if (!rootNode.has("type") || !rootNode.has("orderId") || !rootNode.has("data")) {
+               log.warn("Invalid message structure. Missing 'type', 'orderId' or 'data'");
                return;
            }
 
            String eventType = rootNode.get("type").asText();
-           if (!"InventoryReserved".equals(eventType)) {
-               return;
+           if ("InventoryReserved".equals(eventType)) {
+
+               String orderId = rootNode.get("orderId").asText();
+               JsonNode dataNode = rootNode.get("data");
+
+               if (!dataNode.has("customerId") || !dataNode.has("totalAmount")) {
+                   log.warn("Bỏ qua tin nhắn do thiếu customerId hoặc totalAmount: {}", message);
+                   return;
+               }
+
+               String customerId = dataNode.get("customerId").asText();
+               BigDecimal amount = new BigDecimal(dataNode.get("totalAmount").asText());
+
+               log.info("Processing payment for Order: {}, Customer: {}, Amount: {}", orderId, customerId, amount);
+               paymentService.processPayment(orderId, customerId, amount);
            }
-
-           String innerPayloadStr = rootNode.get("payload").asText();
-           JsonNode payloadNode = objectMapper.readTree(innerPayloadStr);
-
-           String orderId = payloadNode.get("orderId").asText();
-           String customerId = payloadNode.get("customerId").asText();
-           BigDecimal amount = new BigDecimal(payloadNode.get("amount").asText());
-
-           log.info("Received InventoryReserved for Order {}", orderId);
-
-           paymentService.processPayment(orderId, customerId, amount);
        }
        catch (Exception e)
        {

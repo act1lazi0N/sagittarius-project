@@ -6,7 +6,7 @@ spring:
     name: inventory-service
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/sagittarius_db
+    url: jdbc:postgresql://localhost:5432/inventory_service_db
     username: admin
     password: password
     driver-class-name: org.postgresql.Driver
@@ -17,8 +17,12 @@ spring:
       ddl-auto: validate
     properties:
       hibernate:
-        default_schema: inventory_service
         show_sql: false
+        format_sql: true
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
 
   kafka:
     bootstrap-servers: localhost:9092

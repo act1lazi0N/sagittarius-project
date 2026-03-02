@@ -1,9 +1,6 @@
 package com.sagittarius.payment.adapter.persistence.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
@@ -11,7 +8,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "payments", schema = "payment_service")
+@Table(name = "t_payments")
 @Getter
 @Setter
 @Builder
@@ -33,6 +30,11 @@ public class PaymentEntity {
     @Column(nullable = false)
     private String status; // COMPLETED, FAILED
 
-    @Column(name = "created_at")
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
+
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = LocalDateTime.now();
+    }
 }

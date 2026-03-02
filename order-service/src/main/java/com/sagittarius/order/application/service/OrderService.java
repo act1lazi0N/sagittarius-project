@@ -30,8 +30,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class OrderService {
     private final OrderRepository orderRepository;
-    private final OutboxRepository outboxRepository;
-    private final ObjectMapper objectMapper;
+    private final OutboxService outboxService;
 
     @Transactional(readOnly = true)
     public OrderResponse getOrderByOrderNumber(String orderNumber) {
@@ -47,7 +46,7 @@ public class OrderService {
                 .and(OrderSpecification.hasStatus(status));
 
         Page<Order> orderPage = orderRepository.findAll(spec, pageable);
-        return orderPage.map(this::mapToResponse);
+        return orderRepository.findAll(spec, pageable).map(this::mapToResponse);
     }
 
     public void cancelOrder(String orderNumber) {
@@ -89,34 +88,22 @@ public class OrderService {
 
         Order savedOrder = orderRepository.save(order);
 
-        try {
-            List<OrderCreatedEvent.OrderItem> eventItems = request.getItems().stream()
-                    .map(item -> new OrderCreatedEvent.OrderItem(item.getProductId(), item.getQuantity(), item.getPrice()))
-                    .toList();
-
-            OrderCreatedEvent event = OrderCreatedEvent.builder()
-                    .orderId(savedOrder.getOrderNumber())
-                    .customerId(savedOrder.getCustomerId())
-                    .totalAmount(savedOrder.getTotalAmount())
-                    .items(eventItems)
-                    .build();
-
-            String payload = objectMapper.writeValueAsString(event);
-
-            Outbox outbox = Outbox.builder()
-                    .aggregateType("ORDER")
-                    .aggregateId(savedOrder.getOrderNumber())
-                    .type("OrderCreated")
-                    .payload(payload)
-                    .build();
-
-            outboxRepository.save(outbox);
-            log.info("FINISHED SAVING OUTBOX");
-
-        } catch (JsonProcessingException e) {
-            throw new BusinessException("Error processing JSON for Outbox event");
-        }
-
+        // Event data
+        List<OrderCreatedEvent.OrderItem> eventItems = request.getItems().stream()
+                .map(item -> new OrderCreatedEvent.OrderItem(item.getProductId(), item.getQuantity(), item.getPrice()))
+                .toList();
+        OrderCreatedEvent event = OrderCreatedEvent.builder()
+                .orderId(savedOrder.getOrderNumber())
+                .customerId(savedOrder.getCustomerId())
+                .totalAmount(savedOrder.getTotalAmount())
+                .items(eventItems)
+                .build();
+        outboxService.saveEvent(
+                "ORDER",
+                savedOrder.getOrderNumber(),
+                "OrderCreated",
+                event
+        );
         return savedOrder.getOrderNumber();
     }
 

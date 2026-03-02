@@ -1,7 +1,7 @@
 package com.sagittarius.inventory.infrastructure.scheduler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.sagittarius.inventory.adapter.persistence.entity.OutboxEntity;
+import com.sagittarius.inventory.adapter.persistence.entity.Outbox;
 import com.sagittarius.inventory.adapter.persistence.repository.OutboxRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,23 +17,21 @@ import java.util.List;
 public class OutboxPublisherScheduler {
     private final OutboxRepository outboxRepository;
     private final KafkaTemplate<String, String> kafkaTemplate;
-    private final ObjectMapper objectMapper;
 
     @Scheduled(fixedRate = 2000)
     public void publishOutboxEvents() {
-        List<OutboxEntity> events = outboxRepository.findTop50ByOrderByCreatedAtAsc();
-
+        List<Outbox> events = outboxRepository.findTop50ByOrderByCreatedAtAsc();
         if (events.isEmpty()) {
             return;
         }
 
         log.debug("Found {} events in outbox. Starting processing...", events.size());
 
-        for (OutboxEntity event : events) {
+        for (Outbox event : events) {
             try {
                 String topic = event.getAggregateType().toLowerCase() + "-events";
                 String key = event.getAggregateId();
-                String payload = objectMapper.writeValueAsString(event);
+                String payload = event.getPayload();
 
                 kafkaTemplate.send(topic, key, payload)
                         .whenComplete((result, ex) -> {
