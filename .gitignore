@@ -52,3 +52,6 @@ temp/
 
 # OS
 Thumbs.db
+
+# Environment
+.env

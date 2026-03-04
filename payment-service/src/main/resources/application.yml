@@ -2,13 +2,15 @@ server:
   port: 8083
 
 spring:
+  config:
+    import: optional:file:.env[.properties]
   application:
     name: payment-service
 
   datasource:
     url: jdbc:postgresql://localhost:5432/payment_service_db
-    username: admin
-    password: password
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
 
   jpa:

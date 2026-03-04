@@ -2,13 +2,15 @@ server:
   port: 8082
 
 spring:
+  config:
+    import: optional:file:.env[.properties]
   application:
     name: inventory-service
 
   datasource:
     url: jdbc:postgresql://localhost:5432/inventory_service_db
-    username: admin
-    password: password
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
 
   jpa:

@@ -15,6 +15,8 @@
         <module>payment-service</module>
         <module>api-gateway</module>
         <module>discovery-server</module>
+        <module>notification-service</module>
+        <module>identity-service</module>
     </modules>
 
     <properties>
