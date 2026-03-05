@@ -1,4 +1,4 @@
-package com.sagittarius.order.adapter.web.dto;
+package com.sagittarius.order.application.dto;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;

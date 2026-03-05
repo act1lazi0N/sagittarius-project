@@ -1,8 +1,8 @@
-package com.sagittarius.order.adapter.web;
+package com.sagittarius.order.adapter.web.controller;
 
 import com.sagittarius.order.adapter.persistence.entity.OrderStatus;
-import com.sagittarius.order.adapter.web.dto.CreateOrderRequest;
-import com.sagittarius.order.adapter.web.dto.OrderResponse;
+import com.sagittarius.order.application.dto.CreateOrderRequest;
+import com.sagittarius.order.application.dto.OrderResponse;
 import com.sagittarius.order.application.service.OrderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

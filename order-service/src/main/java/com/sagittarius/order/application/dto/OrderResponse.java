@@ -1,4 +1,4 @@
-package com.sagittarius.order.adapter.web.dto;
+package com.sagittarius.order.application.dto;
 
 import com.sagittarius.order.adapter.persistence.entity.OrderStatus;
 import lombok.Builder;

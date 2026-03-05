@@ -1,4 +1,4 @@
-package com.sagittarius.inventory.adapter.web;
+package com.sagittarius.inventory.adapter.web.controller;
 
 import com.sagittarius.inventory.application.service.InventoryService;
 import lombok.RequiredArgsConstructor;
