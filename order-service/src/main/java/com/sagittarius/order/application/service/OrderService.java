@@ -58,8 +58,8 @@ public class OrderService {
 
 
     @Transactional
-    public String createOrder(CreateOrderRequest request) {
-        log.info("Creating order for customer: {}", request.getCustomerId());
+    public String createOrder(String customerId, String email, CreateOrderRequest request) {
+        log.info("Creating order for customer: {}", customerId);
 
         String orderNumber = UUID.randomUUID().toString();
 
@@ -73,8 +73,8 @@ public class OrderService {
 
         Order order = Order.builder()
                 .orderNumber(orderNumber)
-                .customerId(request.getCustomerId())
-                .email(request.getEmail())
+                .customerId(customerId)
+                .email(email)
                 .shippingAddress(request.getShippingAddress())
                 .totalAmount(request.getAmount())
                 .status(OrderStatus.PENDING)

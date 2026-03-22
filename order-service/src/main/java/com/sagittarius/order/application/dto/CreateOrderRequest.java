@@ -9,13 +9,6 @@ import java.util.List;
 
 @Data
 public class CreateOrderRequest {
-   @NotBlank(message = "Customer ID không được để trống")
-   private String customerId;
-
-   @NotBlank(message = "Email không được để trống")
-   @Email(message = "Email không đúng định dạng")
-   private String email;
-
    @NotBlank(message = "Địa chỉ giao hàng không được để trống")
    private String shippingAddress;
 

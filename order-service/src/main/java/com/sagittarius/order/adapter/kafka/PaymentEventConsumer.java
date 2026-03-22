@@ -56,8 +56,15 @@ public class PaymentEventConsumer {
             if ("PaymentCompleted".equals(eventType) || "PaymentProcessed".equals(eventType)) {
                 order.setStatus(OrderStatus.PAID);
                 log.info("Order {} updated to PAID", orderNumber);
-                outboxService.saveEvent("ORDER", orderNumber, "OrderCompleted", Map.of("items", itemsMap));
-            } else if ("PaymentFailed".equals(eventType)) {
+
+                Map<String, Object> payloadData = new HashMap<>();
+                payloadData.put("items", itemsMap);
+                payloadData.put("email", order.getEmail());
+
+                outboxService.saveEvent("ORDER", orderNumber, "OrderCompleted", payloadData);
+            }
+            else if ("PaymentFailed".equals(eventType))
+            {
                 order.setStatus(OrderStatus.CANCELLED);
                 String reason = "Unknown";
                 if (rootNode.has("payload")) {
@@ -68,7 +75,12 @@ public class PaymentEventConsumer {
                 }
                 log.warn("Cancelled Order {}: {}", orderNumber, reason);
 
-                outboxService.saveEvent("ORDER", orderNumber, "OrderCancelled", Map.of("items", itemsMap));
+                Map<String, Object> payloadData = new HashMap<>();
+                payloadData.put("items", itemsMap);
+                payloadData.put("reason", reason);
+                payloadData.put("email", order.getEmail());
+
+                outboxService.saveEvent("ORDER", orderNumber, "OrderCancelled", payloadData);
                 log.info("Order {} updated to CANCELLED due to payment failure", orderNumber);
             } else {
                 log.info("Ignored unhandled event type: {}", eventType);

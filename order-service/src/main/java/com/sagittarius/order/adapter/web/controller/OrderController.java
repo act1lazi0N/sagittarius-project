@@ -11,6 +11,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -21,10 +22,13 @@ public class OrderController {
     private final OrderService orderService;
 
     @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    public String placeOrder(@RequestBody @Valid CreateOrderRequest request)
+    public ResponseEntity<String> placeOrder(
+            @RequestHeader("X-User-Id") String customerId,
+            @RequestHeader("X-User-Email") String email,
+            @RequestBody @Valid CreateOrderRequest request)
     {
-        return orderService.createOrder(request);
+        String orderId = orderService.createOrder(customerId, email, request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(orderId);
     }
 
     @GetMapping("/{orderNumber}")

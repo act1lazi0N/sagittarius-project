@@ -4,6 +4,8 @@ server:
 spring:
   application:
     name: api-gateway
+  config:
+    import: optional:file:.env[.properties]
   cloud:
     gateway:
       discovery:
@@ -67,4 +69,15 @@ resilience4j:
           seconds: 10
         permitted-number-of-calls-in-half-open-state: 3
 
+app:
+  jwt:
+    secret: ${JWT_SECRET_KEY}
+    expiration: ${JWT_EXPIRATION_TIME}
+
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
 

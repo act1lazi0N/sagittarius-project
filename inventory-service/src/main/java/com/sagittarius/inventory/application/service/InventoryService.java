@@ -89,4 +89,34 @@ public class InventoryService {
             throw e;
         }
     }
+
+    @Transactional
+    public void cancelOrderReservation(String orderNumber, Map<String, Integer> items) {
+        String cancelEventId = orderNumber + "_CANCEL";
+
+        if (processedOrderRepository.existsById(cancelEventId)) {
+            log.info("Order {} already processed. Skipping.", cancelEventId);
+            return;
+        }
+
+        try {
+            List<Inventory> inventoriesToUpdate = new ArrayList<>();
+            for (Map.Entry<String, Integer> entry : items.entrySet()) {
+                String skuCode = entry.getKey();
+                Integer quantity = entry.getValue();
+
+                inventoryRepository.findBySkuCode(skuCode).ifPresent(inventory -> {
+                    inventory.cancelReservation(quantity);
+                    inventoriesToUpdate.add(inventory);
+                });
+            }
+            inventoryRepository.saveAll(inventoriesToUpdate);
+            processedOrderRepository.save(new ProcessedOrderEntity(cancelEventId));
+
+            log.info("Stock reservation successfully cancelled and returned to inventory for order {}", orderNumber);
+        } catch (Exception e) {
+            log.error("Error cancelling inventory reservation for order {}", orderNumber, e);
+            throw e;
+        }
+    }
 }

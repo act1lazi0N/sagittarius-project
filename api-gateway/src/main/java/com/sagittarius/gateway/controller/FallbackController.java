@@ -19,6 +19,8 @@ public class FallbackController {
 
     @RequestMapping("/fallback/payment")
     public Mono<String> paymentFallback() {
-        return Mono.just("Hệ thống thanh toán (Payment) đang gián đoạn. Xin lỗi vì sự bất tiện này.");
+        return Mono.just("Hệ thống thanh toán đang gián đoạn. Xin lỗi vì sự bất tiện này.");
     }
+
+
 }

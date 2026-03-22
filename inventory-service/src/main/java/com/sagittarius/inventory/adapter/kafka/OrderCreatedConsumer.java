@@ -36,18 +36,14 @@ public class OrderCreatedConsumer {
                 return;
             }
             String eventType = rootNode.get("type").asText();
+            String orderId = rootNode.get("orderId").asText();
 
             if ("OrderCreated".equals(eventType)) {
                 log.info("Received OrderCreated event");
-
                 JsonNode dataNode = rootNode.get("data");
+                String customerId = dataNode.get("customerId").asText();
+                BigDecimal totalAmount = new BigDecimal(dataNode.get("totalAmount").asText());
 
-                String orderNumber = rootNode.has("orderId")
-                        ? rootNode.get("orderId").asText()
-                        : dataNode.get("orderId").asText();
-
-                String customerId = "";
-                BigDecimal totalAmount = BigDecimal.ZERO;
                 if (dataNode.has("customerId")) {
                     customerId = dataNode.get("customerId").asText();
                 }
@@ -59,14 +55,29 @@ public class OrderCreatedConsumer {
                 JsonNode items = dataNode.get("items");
                 if (items != null && items.isArray()) {
                     for (JsonNode item : items) {
-                        itemsMap.put(
-                                item.get("productId").asText(),
-                                item.get("quantity").asInt());
+                        String productId = item.get("productId").asText();
+                        int quantity = item.get("quantity").asInt();
+                        itemsMap.put(productId, quantity);
                     }
                 }
 
-                log.info("Processing Order: {} with items: {}", orderNumber, itemsMap);
-                inventoryService.processOrderEvent(orderNumber, customerId, totalAmount, itemsMap);
+                log.info("Processing Order: {} with items: {}", orderId, itemsMap);
+                inventoryService.processOrderEvent(orderId, customerId, totalAmount, itemsMap);
+            } else if ("OrderCancelled".equals(eventType)) {
+                log.info("Received OrderCancelled event for Order: {}", orderId);
+
+                JsonNode dataNode = rootNode.get("data");
+                Map<String, Integer> itemsMap = new HashMap<>();
+                JsonNode itemsNode = dataNode.get("items");
+
+                if (itemsNode != null && itemsNode.isObject()) {
+                    itemsNode.fields().forEachRemaining(entry -> {
+                        itemsMap.put(entry.getKey(), entry.getValue().asInt());
+                    });
+                }
+
+                log.info("Returning stock for Order: {} with items: {}", orderId, itemsMap);
+                inventoryService.cancelOrderReservation(orderId, itemsMap);
             }
         } catch (Exception e) {
             log.error("Error processing message: {}", message, e);
