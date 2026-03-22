@@ -17,6 +17,7 @@
         <module>discovery-server</module>
         <module>notification-service</module>
         <module>identity-service</module>
+        <module>product-service</module>
     </modules>
 
     <properties>
