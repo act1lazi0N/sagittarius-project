@@ -1,0 +1,12 @@
+server:
+  port: 8086
+
+spring:
+  application:
+    name: product-service
+  data:
+    mongodb:
+      uri: mongodb://admin:password@localhost:27017/product_db?authSource=admin
+    redis:
+      host: localhost
+      port: 6379
