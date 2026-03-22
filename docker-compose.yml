@@ -114,6 +114,19 @@ services:
     networks:
       - sagittarius-net
 
+  mongodb:
+    image: mongo:latest
+    container_name: sagittarius-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - sagittarius-net
+
   zookeeper:
     image: confluentinc/cp-zookeeper:7.4.0
     container_name: sagittarius-zookeeper
@@ -178,6 +191,7 @@ services:
 
 volumes:
   postgres_data:
+  mongodb_data:
 
 networks:
   sagittarius-net:
