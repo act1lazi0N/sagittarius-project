@@ -5,7 +5,13 @@ import com.sagittarius.identity.adapter.persistence.repository.UserRepository;
 import com.sagittarius.identity.application.dto.AuthResponse;
 import com.sagittarius.identity.application.dto.LoginRequest;
 import com.sagittarius.identity.application.dto.RegisterRequest;
+import jakarta.ws.rs.core.Response;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.keycloak.admin.client.Keycloak;
+import org.keycloak.representations.idm.CredentialRepresentation;
+import org.keycloak.representations.idm.RoleRepresentation;
+import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwsHeader;
@@ -13,66 +19,72 @@ import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Collections;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AuthService {
-    private final JwtEncoder jwtEncoder;
-    private final PasswordEncoder passwordEncoder;
-    private final UserRepository userRepository;
-    public String generateJwtToken(UserEntity user) {
-        Instant now = Instant.now();
-        JwsHeader jwsHeader = JwsHeader.with(MacAlgorithm.HS256).build();
-        JwtClaimsSet claims = JwtClaimsSet.builder()
-                .issuer("sagittarius-identity-service")
-                .issuedAt(now)
-                .expiresAt(now.plus(1, ChronoUnit.HOURS))
-                .subject(user.getUsername())
-                .claim("userId", user.getId())
-                .claim("role", user.getRole())
-                .claim("email", user.getEmail())
-                .build();
-        return this.jwtEncoder.encode(JwtEncoderParameters.from(jwsHeader, claims)).getTokenValue();
-    }
 
+    private final UserRepository userRepository;
+    private final Keycloak keycloak;
+    private final String REALM = "sagittarius-realm";
+
+    @Transactional
     public AuthResponse register(RegisterRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
-            throw new RuntimeException("Username is already in use");
+            throw new RuntimeException("Username has been used!");
         }
+
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email is already in use");
+            throw new RuntimeException("Email has been used!");
         }
+
+        // Create a user in Keycloak
+        UserRepresentation kcUser = new UserRepresentation();
+        kcUser.setUsername(request.getUsername());
+        kcUser.setEmail(request.getEmail());
+        kcUser.setFirstName(request.getFullName());
+        kcUser.setEnabled(true);
+        kcUser.setEmailVerified(true);
+
+        // Set password
+        CredentialRepresentation credential = new CredentialRepresentation();
+        credential.setType(CredentialRepresentation.PASSWORD);
+        credential.setValue(request.getPassword());
+        credential.setTemporary(false);
+        kcUser.setCredentials(Collections.singletonList(credential));
+
+        Response response = keycloak.realm(REALM).users().create(kcUser);
+
+        if (response.getStatus() != 201) {
+            log.error("Failed to register user. HTTP status: {}", response.getStatus());
+            throw new RuntimeException("Failed to register user");
+        }
+
+        // Set rules
+        String userId = response.getLocation().getPath().replaceAll(".*/([^/]+)$", "$1");
+        RoleRepresentation customerRole = keycloak.realm(REALM).roles().get("CUSTOMER").toRepresentation();
+        keycloak.realm(REALM).users().get(userId).roles().realmLevel().add(Collections.singletonList(customerRole));
+
+        // Save user to a database
         UserEntity userEntity = UserEntity.builder()
                 .username(request.getUsername())
-                .password(passwordEncoder.encode(request.getPassword()))
                 .email(request.getEmail())
                 .fullName(request.getFullName())
                 .phoneNumber(request.getPhoneNumber())
-                .role("USER")
+                .role("CUSTOMER")
+                .password("MANAGED_BY_KEYCLOAK")
                 .isActive(true)
-                .isEmailVerified(false)
+                .isEmailVerified(true)
                 .build();
-
         userRepository.save(userEntity);
 
-        return AuthResponse.builder().message("Đăng ký tài khoản thành công!").build();
-    }
-
-    public AuthResponse login(LoginRequest request) {
-        UserEntity user = userRepository.findByUsername(request.getUsername())
-                .orElseThrow(() -> new RuntimeException("Username not found"));
-        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new RuntimeException("Password does not match");
-        }
-
-        String token = generateJwtToken(user);
-
-        return AuthResponse.builder()
-                .token(token)
-                .message("Successfully logged in!")
-                .build();
+        log.info("User {} has been successfully synchronized among Keycloak and DB", request.getUsername());
+        return AuthResponse.builder().message("Account has been created and synchronized successfully!").build();
     }
 }

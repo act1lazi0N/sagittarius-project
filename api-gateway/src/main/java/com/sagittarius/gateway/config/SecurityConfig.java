@@ -1,5 +1,6 @@
 package com.sagittarius.gateway.config;
 
+import com.sagittarius.gateway.utils.KeycloakRealmRoleConverter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.convert.converter.Converter;
@@ -37,12 +38,11 @@ public class SecurityConfig {
                 .authorizeExchange(ex -> ex
                         .pathMatchers("/eureka/**", "/actuator/**").permitAll()
                         .pathMatchers("/api/auth/**", "/v3/api-docs/**", "/swagger-ui/**", "/api-docs/**", "/webjars/**").permitAll()
-                        .pathMatchers("/api/v1/orders/**").hasRole("USER")
+                        .pathMatchers("/api/v1/orders/**").hasRole("CUSTOMER")
                         .pathMatchers("/api/v1/inventory/**").hasRole("ADMIN")
                         .anyExchange().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt
-                                .jwtDecoder(reactiveJwtDecoder())
                                 .jwtAuthenticationConverter(jwtAuthenticationConverter())));
         return serverHttpSecurity.build();
     }
@@ -53,32 +53,15 @@ public class SecurityConfig {
     */
     @Bean
     public Converter<Jwt, Mono<AbstractAuthenticationToken>> jwtAuthenticationConverter() {
-        JwtGrantedAuthoritiesConverter grantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
-        grantedAuthoritiesConverter.setAuthorityPrefix("ROLE_");
-        grantedAuthoritiesConverter.setAuthoritiesClaimName("role");
-
         JwtAuthenticationConverter jwtAuthenticationConverter = new JwtAuthenticationConverter();
-        jwtAuthenticationConverter.setJwtGrantedAuthoritiesConverter(grantedAuthoritiesConverter);
+        jwtAuthenticationConverter.setJwtGrantedAuthoritiesConverter(new KeycloakRealmRoleConverter());
 
         return new ReactiveJwtAuthenticationConverterAdapter(jwtAuthenticationConverter);
     }
 
-
     /**
-     * Decoding token (using Secret Key)
-     * @return token
-     */
-    @Bean
-    public ReactiveJwtDecoder reactiveJwtDecoder() {
-        SecretKey secretKey = new SecretKeySpec(jwtSecretKey.getBytes(), "HmacSHA256");
-        return NimbusReactiveJwtDecoder.withSecretKey(secretKey).build();
-    }
-
-
-    /**
-     *
      * CORS configuration
-     * @return
+     * @Return CorsConfigurationSource
      */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
