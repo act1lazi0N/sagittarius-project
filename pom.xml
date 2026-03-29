@@ -18,6 +18,7 @@
         <module>notification-service</module>
         <module>identity-service</module>
         <module>product-service</module>
+        <module>cart-service</module>
     </modules>
 
     <properties>
