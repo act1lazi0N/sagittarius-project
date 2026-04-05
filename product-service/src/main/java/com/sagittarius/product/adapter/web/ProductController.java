@@ -22,9 +22,8 @@ public class ProductController {
     }
 
     @GetMapping("/{skuCode}")
-    @ResponseStatus(value = HttpStatus.OK, reason = "The product has been found!")
+    @ResponseStatus(HttpStatus.OK)
     public ProductEntity getProduct(@PathVariable String skuCode) {
-
         return productService.getProductBySku(skuCode);
     }
 

@@ -30,7 +30,7 @@ public class OrderEventConsumer {
                 JsonNode dataNode = rootNode.get("data");
                 if (dataNode.has("customerId")) {
                     String customerId = dataNode.get("customerId").asText();
-                    log.info("Bắt được sự kiện OrderCreated! Tiến hành xóa Giỏ hàng cho User: {}", customerId);
+                    log.info("Event OrderCreated catched! Removing user cart: {}", customerId);
                     cartService.clearCart(customerId);
                 }
             }

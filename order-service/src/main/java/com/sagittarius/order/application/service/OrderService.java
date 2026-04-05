@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -64,12 +65,21 @@ public class OrderService {
     public String createOrder(String userId, String email, CreateOrderRequest request) {
         log.info("Creating order for customer: {}", userId);
 
+        String orderNumber = UUID.randomUUID().toString();
         BigDecimal realTotalAmount = BigDecimal.ZERO;
+        List<OrderLineItems> items = new ArrayList<>();
+        List<OrderCreatedEvent.OrderItem> eventItems = new ArrayList<>();
 
         // Auto calculating price
         for (CreateOrderRequest.OrderItemRequest item : request.getItems()) {
             BigDecimal realPrice = productClient.getProductPrice(item.getProductId());
-            item.setPrice(realPrice);
+            items.add(OrderLineItems.builder()
+                    .skuCode(item.getProductId())
+                    .price(realPrice)
+                    .quantity(item.getQuantity())
+                    .build());
+
+            eventItems.add(new OrderCreatedEvent.OrderItem(item.getProductId(), item.getQuantity(), realPrice));
             realTotalAmount = realTotalAmount.add(realPrice.multiply(BigDecimal.valueOf(item.getQuantity())));
         }
 
@@ -77,38 +87,27 @@ public class OrderService {
             log.warn("Warning: Frontend's price passed ({}) different from System price ({}). Replacing by System price", request.getAmount(), realTotalAmount);
         }
 
-        List<OrderLineItems> items = request.getItems().stream()
-                .map(item -> OrderLineItems.builder()
-                        .skuCode(item.getProductId())
-                        .price(item.getPrice())
-                        .quantity(item.getQuantity())
-                        .build())
-                .collect(Collectors.toList());
-
-        String orderNumber = UUID.randomUUID().toString();
-
+        // Saving order
         Order order = Order.builder()
                 .orderNumber(orderNumber)
                 .customerId(userId)
                 .email(email)
                 .shippingAddress(request.getShippingAddress())
-                .totalAmount(request.getAmount())
+                .totalAmount(realTotalAmount)
                 .status(OrderStatus.PENDING)
                 .orderLineItemsList(items)
                 .build();
 
         Order savedOrder = orderRepository.save(order);
 
-        // Event data
-        List<OrderCreatedEvent.OrderItem> eventItems = request.getItems().stream()
-                .map(item -> new OrderCreatedEvent.OrderItem(item.getProductId(), item.getQuantity(), item.getPrice()))
-                .toList();
+        // Saving event
         OrderCreatedEvent event = OrderCreatedEvent.builder()
                 .orderId(savedOrder.getOrderNumber())
                 .customerId(savedOrder.getCustomerId())
                 .totalAmount(savedOrder.getTotalAmount())
                 .items(eventItems)
                 .build();
+
         outboxService.saveEvent(
                 "ORDER",
                 savedOrder.getOrderNumber(),
