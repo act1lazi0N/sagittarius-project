@@ -23,11 +23,11 @@ public class OrderController {
 
     @PostMapping
     public ResponseEntity<String> placeOrder(
-            @RequestHeader("X-User-Id") String customerId,
+            @RequestHeader("X-User-Id") String userId,
             @RequestHeader("X-User-Email") String email,
             @RequestBody @Valid CreateOrderRequest request)
     {
-        String orderId = orderService.createOrder(customerId, email, request);
+        String orderId = orderService.createOrder(userId, email, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(orderId);
     }
 

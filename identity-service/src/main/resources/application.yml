@@ -23,6 +23,9 @@ app:
   jwt:
     secret: ${JWT_SECRET_KEY}
     expiration: ${JWT_EXPIRATION_TIME}
+  keycloak:
+    username: ${KC_ADMIN_USER}
+    password: ${KC_ADMIN_PASS}
 
 eureka:
   client:

@@ -15,28 +15,31 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+        // Extracting JWT Token from Security Context
         return ReactiveSecurityContextHolder.getContext()
                 // Executing JWT Token Only
                 .filter(c -> c.getAuthentication() instanceof JwtAuthenticationToken)
                 .map(c -> (JwtAuthenticationToken) c.getAuthentication())
-                .map(jwtAuth -> {
+                .flatMap(jwtAuth -> {
 
-                    // Extracting user details from JWT Token
-                    String username = jwtAuth.getToken().getSubject();
+                    // Extracting userId directly
+                    String username = jwtAuth.getToken().getClaimAsString("preferred_username");
+                    if (username == null) {
+                        username = jwtAuth.getToken().getSubject();
+                    }
                     String email = jwtAuth.getToken().getClaimAsString("email");
 
-                    // Adding user details to request headers
+                    // Adding to the request header
                     ServerHttpRequest request = exchange.getRequest().mutate()
                             .header("X-User-Id", username)
                             .header("X-User-Email", email)
                             .build();
 
-                    // Updating request with user details
-                    return exchange.mutate().request(request).build();
+                    // Returning the exchange to the next filter
+                    return chain.filter(exchange.mutate().request(request).build());
                 })
                 // Proceeding to the next filter if JWT Token is not present
-                .defaultIfEmpty(exchange)
-                .flatMap(chain::filter);
+                .switchIfEmpty(chain.filter(exchange));
     }
 
     @Override

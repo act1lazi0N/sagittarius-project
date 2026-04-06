@@ -39,6 +39,10 @@ spring:
               args:
                 name: paymentCircuitBreaker
                 fallbackUri: forward:/fallback/payment
+        - id: identity-service
+          uri: lb://IDENTITY-SERVICE
+          predicates:
+            - Path=/api/auth/**, /api/users/**
   security:
     oauth2:
       resourceserver:
