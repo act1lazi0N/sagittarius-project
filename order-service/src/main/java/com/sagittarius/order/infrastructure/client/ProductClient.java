@@ -1,6 +1,7 @@
 package com.sagittarius.order.infrastructure.client;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
@@ -12,8 +13,11 @@ import java.util.Map;
 public class ProductClient {
     private final RestTemplate restTemplate = new RestTemplate();
 
+    @Value("${app.product-service.url:http://localhost:8086}")
+    private String productServiceUrl;
+
     public BigDecimal getProductPrice(String skuCode) {
-        String url = "http://localhost:8086/api/v1/products/" + skuCode;
+        String url = productServiceUrl + "/api/v1/products/" + skuCode;
         try {
             Map<String, Object> response = restTemplate.getForObject(url, Map.class);
             if (response != null && response.get("price") != null) {
