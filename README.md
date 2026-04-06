@@ -1,4 +1,4 @@
-# Sagittarius
+# PROJECT: SAGITTARIUS
 
 **Enterprise E-commerce Platform** built with Microservices and Event-Driven Architecture.
 
