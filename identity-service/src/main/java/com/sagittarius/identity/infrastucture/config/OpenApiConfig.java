@@ -17,7 +17,7 @@ import org.springframework.context.annotation.Configuration;
         type = SecuritySchemeType.HTTP,
         scheme = "bearer",
         bearerFormat = "JWT",
-        description = "Nhập mã JWT Token của bạn vào đây: "
+        description = "Typing JWT Token here: "
 )
 public class OpenApiConfig {
 }

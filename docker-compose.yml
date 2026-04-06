@@ -1,31 +1,22 @@
 version: '3.8'
 
 services:
+  #SERVICES
   api-gateway:
     build: ./api-gateway
     container_name: api-gateway
     ports:
       - "8080:8080"
     environment:
-      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka
-      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://keycloak:8080/realms/sagittarius-realm
-      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/sagittarius-realm/protocol/openid-connect/certs
-
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=http://keycloak:8080/realms/sagittarius-realm
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI=http://keycloak:8080/realms/sagittarius-realm/protocol/openid-connect/certs
     depends_on:
       keycloak:
         condition: service_started
       discovery-server:
         condition: service_started
-    networks:
-      - sagittarius-net
-
-  discovery-server:
-    build: ./discovery-server
-    container_name: discovery-server
-    ports:
-      - "8761:8761"
-    environment:
-      - SPRING_PROFILES_ACTIVE=docker
     networks:
       - sagittarius-net
 
@@ -77,11 +68,9 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka
-
       - SPRING_DATASOURCE_URL=jdbc:postgresql://sagittarius-postgres:5432/sagittarius_db
       - SPRING_DATASOURCE_USERNAME=admin
       - SPRING_DATASOURCE_PASSWORD=password
-
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
     depends_on:
@@ -91,12 +80,97 @@ services:
     networks:
       - sagittarius-net
 
+  notification-service:
+    build: ./notification-service
+    container_name: notification-service
+    ports:
+      - "8084:8084"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - MAIL_USERNAME=${MAIL_USERNAME}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
+      - MAIL_NAME=${MAIL_NAME}
+      - TEST_RECIPIENT_EMAIL=${TEST_RECIPIENT_EMAIL}
+    depends_on:
+      - kafka
+    networks:
+      - sagittarius-net
+
+  identity-service:
+    build: ./identity-service
+    container_name: identity-service
+    ports:
+      - "8085:8085"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://sagittarius-postgres:5432/sagittarius_db
+      - APP_KEYCLOAK_SERVER_URL=http://keycloak:8080
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - JWT_EXPIRATION_TIME=${JWT_EXPIRATION_TIME}
+    depends_on:
+      - postgres
+      - discovery-server
+      - keycloak
+    networks:
+      - sagittarius-net
+
+  product-service:
+    build: ./product-service
+    container_name: product-service
+    ports:
+      - "8086:8086"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka
+      - SPRING_DATA_MONGODB_URI=mongodb://${DB_USERNAME}:${DB_PASSWORD}@sagittarius-mongodb:27017/product_db?authSource=admin
+      - SPRING_DATA_REDIS_HOST=sagittarius-redis
+      - SPRING_ELASTICSEARCH_URIS=http://sagittarius-elasticsearch:9200
+    depends_on:
+      - mongodb
+      - redis
+      - elasticsearch
+      - discovery-server
+    networks:
+      - sagittarius-net
+
+  cart-service:
+    build: ./cart-service
+    container_name: cart-service
+    ports:
+      - "8087:8087"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka
+      - SPRING_DATA_REDIS_HOST=sagittarius-redis
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+    depends_on:
+      - redis
+      - discovery-server
+      - kafka
+    networks:
+      - sagittarius-net
+
+  #INFRASTRUCTURES AND DATABASES
+  discovery-server:
+    build: ./discovery-server
+    container_name: discovery-server
+    ports:
+      - "8761:8761"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    networks:
+      - sagittarius-net
+
   postgres:
     image: postgres:15-alpine
     container_name: sagittarius-postgres
     environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: password
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: sagittarius_db
     ports:
       - "5432:5432"
@@ -120,8 +194,8 @@ services:
     ports:
       - "27017:27017"
     environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_ROOT_USERNAME: ${DB_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${DB_PASSWORD}
     volumes:
       - mongodb_data:/data/db
     networks:
@@ -180,12 +254,24 @@ services:
     container_name: keycloak
     command: start-dev
     environment:
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
+      KEYCLOAK_ADMIN: ${KC_ADMIN_USER}
+      KEYCLOAK_ADMIN_PASSWORD: ${KC_ADMIN_PASS}
       KC_HTTP_ENABLED: "true"
       KC_HOSTNAME: localhost
     ports:
       - "8181:8080"
+    networks:
+      - sagittarius-net
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.1
+    container_name: sagittarius-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
     networks:
       - sagittarius-net
 
