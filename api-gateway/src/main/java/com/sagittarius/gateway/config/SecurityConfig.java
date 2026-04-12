@@ -37,7 +37,13 @@ public class SecurityConfig {
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .authorizeExchange(ex -> ex
                         .pathMatchers("/eureka/**", "/actuator/**").permitAll()
-                        .pathMatchers("/api/auth/**", "/v3/api-docs/**", "/swagger-ui/**", "/api-docs/**", "/webjars/**").permitAll()
+                        .pathMatchers(
+                                "/api/auth/**",
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/api-docs/**",
+                                "/webjars/**")
+                        .permitAll()
                         .pathMatchers("/api/v1/orders/**").hasRole("CUSTOMER")
                         .pathMatchers("/api/v1/inventory/**").hasRole("ADMIN")
                         .anyExchange().authenticated())

@@ -5,9 +5,11 @@ import com.sagittarius.identity.adapter.persistence.repository.UserRepository;
 import com.sagittarius.identity.application.dto.AuthResponse;
 import com.sagittarius.identity.application.dto.LoginRequest;
 import com.sagittarius.identity.application.dto.RegisterRequest;
+import com.sagittarius.identity.infrastucture.client.PaymentClient;
 import jakarta.ws.rs.core.Response;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.keycloak.admin.client.CreatedResponseUtil;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.RoleRepresentation;
@@ -32,6 +34,7 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final Keycloak keycloak;
+    private final PaymentClient paymentClient;
     private final String REALM = "sagittarius-realm";
 
     @Transactional
@@ -67,12 +70,14 @@ public class AuthService {
         }
 
         // Set rules
+        String keycloakUserId = CreatedResponseUtil.getCreatedId(response);
         String userId = response.getLocation().getPath().replaceAll(".*/([^/]+)$", "$1");
         RoleRepresentation customerRole = keycloak.realm(REALM).roles().get("CUSTOMER").toRepresentation();
         keycloak.realm(REALM).users().get(userId).roles().realmLevel().add(Collections.singletonList(customerRole));
 
         // Save user to a database
         UserEntity userEntity = UserEntity.builder()
+                .id(keycloakUserId)
                 .username(request.getUsername())
                 .email(request.getEmail())
                 .fullName(request.getFullName())
@@ -83,6 +88,13 @@ public class AuthService {
                 .isEmailVerified(true)
                 .build();
         userRepository.save(userEntity);
+
+        try {
+            paymentClient.openWallet(userEntity.getId().toString());
+            log.info("Successfully opening wallet for user: {}", userEntity.getUsername());
+        } catch (Exception e) {
+            log.error("Error in opening wallet {}: {}", userEntity.getUsername(), e.getMessage());
+        }
 
         log.info("User {} has been successfully synchronized among Keycloak and DB", request.getUsername());
         return AuthResponse.builder().message("Account has been created and synchronized successfully!").build();

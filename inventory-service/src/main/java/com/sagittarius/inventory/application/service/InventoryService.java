@@ -33,6 +33,24 @@ public class InventoryService {
                 .orElse(false);
     }
 
+    @Transactional()
+    public void stockIn(String skuCode, Integer quantity) {
+        if (quantity <= 0) {
+            throw new IllegalArgumentException("Quantity must be greater than 0");
+        }
+
+        Inventory inventory = inventoryRepository.findBySkuCode(skuCode)
+                .orElseGet(() -> Inventory.builder()
+                        .skuCode(skuCode)
+                        .quantity(0)
+                        .reservedQuantity(0)
+                        .reorderLevel(10) // Default reorder level (Warning nearly insufficient items)
+                        .build());
+        inventory.setQuantity(inventory.getQuantity() + quantity);
+        inventoryRepository.save(inventory);
+        log.info("Stock added for {}: {}. Total: {}", skuCode, quantity, inventory.getQuantity());
+    }
+
     @Transactional(readOnly = true)
     public void processOrderEvent(String orderNumber, String customerId, BigDecimal totalAmount, Map<String, Integer> items) {
         if (processedOrderRepository.existsById(orderNumber)) {

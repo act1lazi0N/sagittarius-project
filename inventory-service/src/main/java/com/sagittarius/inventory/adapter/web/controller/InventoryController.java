@@ -18,5 +18,11 @@ public class InventoryController {
         return inventoryService.isInStock(skuCode, quantity);
     }
 
+    @PostMapping("/stock-in")
+    @ResponseStatus(HttpStatus.OK)
+    public void stockIn(@RequestParam String skuCode, @RequestParam Integer quantity) {
+        inventoryService.stockIn(skuCode, quantity);
+    }
+
 
 }

@@ -43,6 +43,36 @@ spring:
           uri: lb://IDENTITY-SERVICE
           predicates:
             - Path=/api/auth/**, /api/users/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: identityCircuitBreaker
+                fallbackUri: forward:/fallback/identity
+
+        - id: identity-service-docs
+          uri: lb://IDENTITY-SERVICE
+          predicates:
+            - Path=/v3/api-docs/identity
+          filters:
+            - RewritePath=/v3/api-docs/identity, /api-docs
+        - id: order-service-docs
+          uri: lb://ORDER-SERVICE
+          predicates:
+            - Path=/v3/api-docs/order
+          filters:
+            - RewritePath=/v3/api-docs/order, /api-docs
+        - id: inventory-service-docs
+          uri: lb://INVENTORY-SERVICE
+          predicates:
+            - Path=/v3/api-docs/inventory
+          filters:
+            - RewritePath=/v3/api-docs/inventory, /api-docs
+        - id: payment-service-docs
+          uri: lb://PAYMENT-SERVICE
+          predicates:
+            - Path=/v3/api-docs/payment
+          filters:
+            - RewritePath=/v3/api-docs/payment, /api-docs
   security:
     oauth2:
       resourceserver:
@@ -84,4 +114,13 @@ springdoc:
     path: /api-docs
   swagger-ui:
     path: /swagger-ui.html
+    urls:
+      - name: Order Service
+        url: /v3/api-docs/order
+      - name: Inventory Service
+        url: /v3/api-docs/inventory
+      - name: Payment Service
+        url: /v3/api-docs/payment
+      - name: Identity Service
+        url: /v3/api-docs/identity
 
