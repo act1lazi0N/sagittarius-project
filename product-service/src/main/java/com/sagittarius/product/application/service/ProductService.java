@@ -1,10 +1,11 @@
 package com.sagittarius.product.application.service;
 
-import com.sagittarius.common.exception.ResourceNotFoundException;
+import com.sagittarius.common.exception.BusinessException;
 import com.sagittarius.product.adapter.persistence.entity.ProductDocument;
 import com.sagittarius.product.adapter.persistence.entity.ProductEntity;
 import com.sagittarius.product.adapter.persistence.repository.ProductRepository;
 import com.sagittarius.product.adapter.persistence.repository.ProductSearchRepository;
+import com.sagittarius.product.application.exception.ProductErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -26,7 +27,7 @@ public class ProductService {
         log.info("Cache miss! Fetching product '{}' directly from MongoDB.", skuCode);
 
         return productRepository.findBySkuCode(skuCode)
-                .orElseThrow(() -> new ResourceNotFoundException("Product not found with SKU: " + skuCode));
+                .orElseThrow(() -> new BusinessException(ProductErrorCode.PRODUCT_NOT_FOUND));
     }
 
     @Transactional

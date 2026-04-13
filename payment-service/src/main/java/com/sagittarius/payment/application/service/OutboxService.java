@@ -2,8 +2,10 @@ package com.sagittarius.payment.application.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sagittarius.common.exception.BusinessException;
 import com.sagittarius.payment.adapter.persistence.entity.OutboxEntity;
 import com.sagittarius.payment.adapter.persistence.repository.OutboxRepository;
+import com.sagittarius.payment.application.exception.PaymentErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -43,8 +45,9 @@ public class OutboxService {
             outboxRepository.save(outbox);
             log.info("Outbox event saved: Type={}, OrderId={}", eventType, aggregateId);
         } catch (JsonProcessingException e) {
-        log.error("Error serializing payment outbox payload", e);
-    }
+            log.error("Error serializing payment outbox payload", e);
+            throw new BusinessException(PaymentErrorCode.JSON_PROCESS_ERROR);
+        }
     }
 
 }

@@ -42,10 +42,4 @@ public class SecurityConfig {
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
         return http.build();
     }
-
-    @Bean
-    public JwtDecoder jwtDecoder(@Value("${app.jwt.secret}") String secretKey) {
-        SecretKey key = new SecretKeySpec(secretKey.getBytes(), "HmacSHA256");
-        return NimbusJwtDecoder.withSecretKey(key).build();
-    }
 }

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sagittarius.common.exception.BusinessException;
 import com.sagittarius.inventory.adapter.persistence.entity.Outbox;
 import com.sagittarius.inventory.adapter.persistence.repository.OutboxRepository;
+import com.sagittarius.inventory.application.exception.InventoryErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -41,7 +42,7 @@ public class OutboxService {
 
         } catch (JsonProcessingException e) {
             log.error("Failed to serialize outbox payload", e);
-            throw new BusinessException("Error processing JSON for Outbox event");
+            throw new BusinessException(InventoryErrorCode.JSON_PROCESS_ERROR);
         }
     }
 }

@@ -1,4 +1,4 @@
-package com.sagittarius.identity.application.dto;
+package com.sagittarius.identity.application.dto.request;
 
 import lombok.Data;
 

@@ -78,7 +78,6 @@ spring:
       resourceserver:
         jwt:
           issuer-uri: http://localhost:8181/realms/sagittarius-realm
-          jwk-set-uri: http://localhost:8181/realms/sagittarius-realm/protocol/openid-connect/certs
 
 management:
   tracing:

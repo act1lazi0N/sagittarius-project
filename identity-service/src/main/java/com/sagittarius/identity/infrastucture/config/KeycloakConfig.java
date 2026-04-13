@@ -1,5 +1,6 @@
 package com.sagittarius.identity.infrastucture.config;
 
+import org.keycloak.OAuth2Constants;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.KeycloakBuilder;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,6 +24,7 @@ public class KeycloakConfig {
         return KeycloakBuilder.builder()
                 .serverUrl(keycloakUrl)
                 .realm("master")
+                .grantType(OAuth2Constants.PASSWORD)
                 .clientId("admin-cli")
                 .username(keycloakUsername)
                 .password(keycloakPassword)

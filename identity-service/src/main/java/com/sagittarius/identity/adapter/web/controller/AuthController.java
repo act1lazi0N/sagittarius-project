@@ -1,8 +1,7 @@
 package com.sagittarius.identity.adapter.web.controller;
 
-import com.sagittarius.identity.application.dto.AuthResponse;
-import com.sagittarius.identity.application.dto.LoginRequest;
-import com.sagittarius.identity.application.dto.RegisterRequest;
+import com.sagittarius.identity.application.dto.response.AuthResponse;
+import com.sagittarius.identity.application.dto.request.RegisterRequest;
 import com.sagittarius.identity.application.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

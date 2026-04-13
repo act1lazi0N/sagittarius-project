@@ -1,7 +1,7 @@
 package com.sagittarius.common.web.handler;
 
+import com.sagittarius.common.exception.BaseErrorCode;
 import com.sagittarius.common.exception.BusinessException;
-import com.sagittarius.common.exception.ResourceNotFoundException;
 import com.sagittarius.common.web.dto.ErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -12,22 +12,29 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
 @Slf4j
 public class BaseGlobalExceptionHandler {
-    @ExceptionHandler(ResourceNotFoundException.class)
-    @ResponseStatus(HttpStatus.NOT_FOUND)
-    public ResponseEntity<ErrorResponse> handleNotFound(ResourceNotFoundException ex, HttpServletRequest request) {
-        return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage(), request, null);
-    }
-
     @ExceptionHandler(BusinessException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ResponseEntity<ErrorResponse> handleBusiness(BusinessException ex, HttpServletRequest request) {
-        return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), request, null);
+    public ResponseEntity<ErrorResponse> handleBusinessException(BusinessException ex, HttpServletRequest request) {
+        BaseErrorCode errorCode = ex.getErrorCode();
+        log.warn("Business Exception: {}", errorCode.getMessage());
+
+        ErrorResponse response = ErrorResponse.builder()
+                .type("https://api.sagittarius.com/errors/" + errorCode.getCode().toLowerCase())
+                .title("Business Rule Violation")
+                .status(errorCode.getStatus())
+                .detail(errorCode.getMessage())
+                .instance(request.getRequestURI())
+                .errorCode(errorCode.getCode())
+                .timestamp(LocalDateTime.now())
+                .build();
+
+        return ResponseEntity.status(errorCode.getStatus()).body(response);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -39,24 +46,33 @@ public class BaseGlobalExceptionHandler {
             String errorMessage = error.getDefaultMessage();
             errors.put(fieldName, errorMessage);
         });
-        return buildResponse(HttpStatus.BAD_REQUEST, "Validation Failed", request, errors);
+
+        ErrorResponse response = ErrorResponse.builder()
+                .type("https://api.sagittarius.com/errors/validation_failed")
+                .title("Validation Failed")
+                .status(400)
+                .detail("Dữ liệu đầu vào không hợp lệ")
+                .instance(request.getRequestURI())
+                .errorCode("VALIDATION_ERROR")
+                .timestamp(LocalDateTime.now())
+                .validationErrors(errors)
+                .build();
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGlobalException(Exception ex, HttpServletRequest request) {
         log.error("Internal Server Error: ", ex);
-        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error: " + ex.getMessage(), request, null);
-    }
 
-    private ResponseEntity<ErrorResponse> buildResponse(HttpStatus status, String message, HttpServletRequest request, Map<String, String> errors) {
         ErrorResponse response = ErrorResponse.builder()
+                .type("https://api.sagittarius.com/errors/internal_error")
+                .title("Internal Server Error")
+                .status(500)
+                .detail("Đã xảy ra lỗi hệ thống, vui lòng thử lại sau!")
+                .instance(request.getRequestURI())
+                .errorCode("INTERNAL_SERVER_ERROR")
                 .timestamp(LocalDateTime.now())
-                .status(status.value())
-                .error(status.getReasonPhrase())
-                .message(message)
-                .path(request.getRequestURI())
-                .validationErrors(errors)
                 .build();
-        return new ResponseEntity<>(response, status);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
 }

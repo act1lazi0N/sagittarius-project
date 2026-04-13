@@ -1,7 +1,9 @@
 package com.sagittarius.payment.application.service;
 
+import com.sagittarius.common.exception.BusinessException;
 import com.sagittarius.payment.adapter.persistence.entity.CustomerBalanceEntity;
 import com.sagittarius.payment.adapter.persistence.repository.CustomerBalanceRepository;
+import com.sagittarius.payment.application.exception.PaymentErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -21,7 +23,7 @@ public class BalanceService {
     public String openWallet(String customerId) {
         // Check a customer's wallet
         if (balanceRepository.existsById(customerId)) {
-            throw new RuntimeException("Ví của khách hàng này đã tồn tại!");
+            throw new BusinessException(PaymentErrorCode.WALLET_ALREADY_EXISTS);
         }
 
         // Create a new wallet with credit by 0

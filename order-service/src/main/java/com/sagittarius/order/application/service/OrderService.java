@@ -1,6 +1,7 @@
 package com.sagittarius.order.application.service;
 
 import com.sagittarius.common.event.OrderCreatedEvent;
+import com.sagittarius.common.exception.BusinessException;
 import com.sagittarius.order.adapter.persistence.entity.Order;
 import com.sagittarius.order.adapter.persistence.entity.OrderLineItems;
 import com.sagittarius.order.adapter.persistence.entity.OrderStatus;
@@ -8,6 +9,7 @@ import com.sagittarius.order.adapter.persistence.repository.OrderRepository;
 import com.sagittarius.order.adapter.persistence.repository.OrderSpecification;
 import com.sagittarius.order.application.dto.CreateOrderRequest;
 import com.sagittarius.order.application.dto.OrderResponse;
+import com.sagittarius.order.application.exception.OrderErrorCode;
 import com.sagittarius.order.infrastructure.client.ProductClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,7 +36,7 @@ public class OrderService {
     @Transactional(readOnly = true)
     public OrderResponse getOrderByOrderNumber(String orderNumber) {
         Order order = orderRepository.findByOrderNumber(orderNumber)
-                .orElseThrow(() -> new RuntimeException("Order not found: " + orderNumber));
+                .orElseThrow(() -> new BusinessException(OrderErrorCode.ORDER_NOT_FOUND));
         return mapToResponse(order);
     }
 
@@ -52,7 +54,7 @@ public class OrderService {
         Order order = orderRepository.findByOrderNumber(orderNumber)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
         if (order.getStatus() == OrderStatus.SHIPPED || order.getStatus() == OrderStatus.DELIVERED) {
-            throw new RuntimeException("Cannot cancel order that has been shipped");
+            throw new BusinessException(OrderErrorCode.CANNOT_CANCEL_SHIPPED_ORDER);
         }
 
         order.setStatus(OrderStatus.CANCELLED);

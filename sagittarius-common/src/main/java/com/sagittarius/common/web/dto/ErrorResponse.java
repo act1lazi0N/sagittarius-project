@@ -3,16 +3,18 @@ package com.sagittarius.common.web.dto;
 import lombok.Builder;
 import lombok.Data;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Map;
 
-@Data
 @Builder
-public class ErrorResponse {
-    private LocalDateTime timestamp;
-    private int status;
-    private String error;
-    private String message;
-    private String path;
-    private Map<String, String> validationErrors;
-}
+public record ErrorResponse(
+        String type,
+        String title,
+        int status,
+        String detail,
+        String instance,
+        String errorCode,
+        LocalDateTime timestamp,
+        Map<String, String> validationErrors
+) {}

@@ -2,6 +2,8 @@ package com.sagittarius.cart.application.service;
 
 import com.sagittarius.cart.adapter.persistence.entity.Cart;
 import com.sagittarius.cart.adapter.persistence.entity.CartItem;
+import com.sagittarius.cart.application.exception.CartErrorCode;
+import com.sagittarius.common.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -30,6 +32,10 @@ public class CartService {
     }
 
     public Cart addToCart(String customerId, CartItem newItem) {
+        if (newItem.getQuantity() <= 0) {
+            throw new BusinessException(CartErrorCode.INVALID_QUANTITY);
+        }
+
         Cart cart = getCart(customerId);
 
         Optional<CartItem> existingItem = cart.getItems().stream()
@@ -45,16 +51,39 @@ public class CartService {
         }
         return saveCart(cart);
     }
+    public Cart updateCartItem(String customerId, String productId, int newQuantity) {
+        if (newQuantity <= 0) {
+            throw new BusinessException(CartErrorCode.INVALID_QUANTITY);
+        }
 
-    public Cart removeFromCart(String customerId, String productId) {
         Cart cart = getCart(customerId);
-        cart.getItems().removeIf(item -> item.getProductId().equals(productId));
+        CartItem itemToUpdate = cart.getItems().stream()
+                .filter(item -> item.getProductId().equals(productId))
+                .findFirst()
+                .orElseThrow(() -> new BusinessException(CartErrorCode.ITEM_NOT_FOUND));
+
+        itemToUpdate.setQuantity(newQuantity);
         return saveCart(cart);
+    }
+
+    public void removeFromCart(String customerId, String productId) {
+        Cart cart = getCart(customerId);
+        boolean isRemoved = cart.getItems().removeIf(item -> item.getProductId().equals(productId));
+
+        if (!isRemoved) {
+            throw new BusinessException(CartErrorCode.ITEM_NOT_FOUND);
+        }
+
+        saveCart(cart);
     }
 
     public void clearCart(String customerId) {
         String key = CART_PREFIX + customerId;
-        redisTemplate.delete(key);
+        Boolean isDeleted = redisTemplate.delete(key);
+        if (!isDeleted) {
+            throw new BusinessException(CartErrorCode.CART_NOT_FOUND);
+        }
+
         log.info("Cleared cart for customer: {}", customerId);
     }
 
@@ -64,5 +93,4 @@ public class CartService {
         log.info("Saved cart for customer: {}", cart.getCustomerId());
         return cart;
     }
-
 }
