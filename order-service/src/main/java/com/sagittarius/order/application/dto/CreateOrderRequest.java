@@ -2,30 +2,19 @@ package com.sagittarius.order.application.dto;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.util.List;
 
 @Data
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class CreateOrderRequest {
-   @NotBlank(message = "Địa chỉ giao hàng không được để trống")
    private String shippingAddress;
-
-   @NotNull(message = "Tổng tiền không được để trống")
-   @Positive(message = "Tổng tiền phải lớn hơn 0")
    private BigDecimal amount;
-
-   @NotEmpty(message = "Giỏ hàng không được để trống")
-   @Valid
-   private List<OrderItemRequest> items;
-
-   @Data
-   public static class OrderItemRequest {
-      @NotBlank
-      private String productId;
-      @DecimalMin(value = "1")
-      private int quantity;
-      private BigDecimal price;
-   }
 }

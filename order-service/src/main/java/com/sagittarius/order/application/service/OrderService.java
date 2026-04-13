@@ -7,9 +7,11 @@ import com.sagittarius.order.adapter.persistence.entity.OrderLineItems;
 import com.sagittarius.order.adapter.persistence.entity.OrderStatus;
 import com.sagittarius.order.adapter.persistence.repository.OrderRepository;
 import com.sagittarius.order.adapter.persistence.repository.OrderSpecification;
+import com.sagittarius.order.application.dto.CartResponse;
 import com.sagittarius.order.application.dto.CreateOrderRequest;
 import com.sagittarius.order.application.dto.OrderResponse;
 import com.sagittarius.order.application.exception.OrderErrorCode;
+import com.sagittarius.order.infrastructure.client.CartClient;
 import com.sagittarius.order.infrastructure.client.ProductClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,6 +34,7 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final OutboxService outboxService;
     private final ProductClient productClient;
+    private final CartClient cartClient;
 
     @Transactional(readOnly = true)
     public OrderResponse getOrderByOrderNumber(String orderNumber) {
@@ -67,22 +70,34 @@ public class OrderService {
     public String createOrder(String userId, String email, CreateOrderRequest request) {
         log.info("Creating order for customer: {}", userId);
 
+        CartResponse cart = cartClient.getCart(userId);
+        if (cart == null || cart.items() == null || cart.items().isEmpty()) {
+            throw new BusinessException(OrderErrorCode.CART_EMPTY);
+        }
+
         String orderNumber = UUID.randomUUID().toString();
         BigDecimal realTotalAmount = BigDecimal.ZERO;
         List<OrderLineItems> items = new ArrayList<>();
         List<OrderCreatedEvent.OrderItem> eventItems = new ArrayList<>();
 
-        // Auto calculating price
-        for (CreateOrderRequest.OrderItemRequest item : request.getItems()) {
-            BigDecimal realPrice = productClient.getProductPrice(item.getProductId());
-            items.add(OrderLineItems.builder()
-                    .skuCode(item.getProductId())
-                    .price(realPrice)
-                    .quantity(item.getQuantity())
-                    .build());
+        for (CartResponse.CartItemResponse cartItem : cart.items()) {
+            try {
+                // refresh real price from product service
+                BigDecimal realPrice = productClient.getProductPrice(cartItem.productId());
 
-            eventItems.add(new OrderCreatedEvent.OrderItem(item.getProductId(), item.getQuantity(), realPrice));
-            realTotalAmount = realTotalAmount.add(realPrice.multiply(BigDecimal.valueOf(item.getQuantity())));
+                items.add(OrderLineItems.builder()
+                        .skuCode(cartItem.productId())
+                        .price(realPrice)
+                        .quantity(cartItem.quantity())
+                        .build());
+
+                eventItems.add(new OrderCreatedEvent.OrderItem(cartItem.productId(), cartItem.quantity(), realPrice));
+                realTotalAmount = realTotalAmount.add(realPrice.multiply(BigDecimal.valueOf(cartItem.quantity())));
+
+            } catch (Exception e) {
+                log.error("Cannot take the product's price: {}", cartItem.productId());
+                throw new BusinessException(OrderErrorCode.PRODUCT_PRICE_UNAVAILABLE);
+            }
         }
 
         if (request.getAmount().compareTo(realTotalAmount) != 0) {
@@ -116,6 +131,14 @@ public class OrderService {
                 "OrderCreated",
                 event
         );
+
+        try {
+            cartClient.clearCart(userId);
+            log.info("Cart has been cleared for user: {}", userId);
+        } catch (Exception e) {
+            log.error("Error when deleting the shopping cart (does not affect the order creation process): {}", e.getMessage());
+        }
+
         return savedOrder.getOrderNumber();
     }
 

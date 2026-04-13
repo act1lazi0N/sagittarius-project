@@ -1,5 +1,7 @@
 package com.sagittarius.order.infrastructure.client;
 
+import com.sagittarius.common.exception.BusinessException;
+import com.sagittarius.order.application.exception.OrderErrorCode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -26,7 +28,7 @@ public class ProductClient {
             throw new RuntimeException("Unavailable price for product: " + skuCode);
         } catch (Exception e) {
             log.error("Lỗi CHI TIẾT khi gọi Product Service: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to connect to Product Service to get price from product: " + skuCode, e);
+            throw new BusinessException(OrderErrorCode.PRODUCT_PRICE_UNAVAILABLE);
         }
     }
 }

@@ -6,7 +6,8 @@ public enum OrderErrorCode implements BaseErrorCode {
     ORDER_NOT_FOUND(404, "ORDER_NOT_FOUND", "Không tìm thấy đơn hàng!"),
     CANNOT_CANCEL_SHIPPED_ORDER(400, "INVALID_STATE", "Không thể hủy đơn hàng đã được giao!"),
     PRODUCT_PRICE_UNAVAILABLE(400, "PRICE_ERROR", "Không thể lấy giá sản phẩm từ hệ thống!"),
-    JSON_PROCESS_ERROR(500, "JSON_ERROR", "Lỗi đóng gói dữ liệu sự kiện!");
+    JSON_PROCESS_ERROR(500, "JSON_ERROR", "Lỗi đóng gói dữ liệu sự kiện!"),
+    CART_EMPTY(400, "CART_EMPTY", "Giỏ hàng đang trống!");
 
     private final int status;
     private final String code;
