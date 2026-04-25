@@ -1,0 +1,14 @@
+type Query {
+    getProductBySku(skuCode: String!): Product
+    searchProducts(keyword: String!): [Product]
+}
+
+type Product {
+    id: ID
+    skuCode: String!
+    name: String!
+    description: String
+    price: Float!
+    brand: String
+    categories: [String]
+}

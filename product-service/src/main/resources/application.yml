@@ -12,3 +12,13 @@ spring:
       port: 6379
   elasticsearch:
     uris: http://localhost:9200
+  graphql:
+    graphiql:
+      enabled: true
+      path: /graphiql
+    cors:
+      allowed-origins: "*"
+
+grpc:
+  server:
+    port: 9090

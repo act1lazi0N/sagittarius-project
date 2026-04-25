@@ -56,3 +56,7 @@ springdoc:
     path: /api-docs
   swagger-ui:
     path: /swagger-ui.html
+
+grpc:
+  server:
+    port: 9093

@@ -1,0 +1,23 @@
+// Syntax version
+syntax = "proto3";
+
+// Option: Setup configuration
+option java_multiple_files = true;
+option java_package = "com.sagittarius.grpc.payment";
+option java_outer_classname = "PaymentProto";
+
+// Package: Avoid name conflict
+package payment;
+
+// Service: Define RPC methods
+service PaymentService {
+  rpc OpenWallet (OpenWalletRequest) returns (OpenWalletResponse);
+}
+
+// Message: Define data structure
+message OpenWalletRequest { string customer_id = 1; }
+
+message OpenWalletResponse {
+  bool success = 1;
+  string message = 2;
+}

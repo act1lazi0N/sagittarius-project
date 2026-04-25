@@ -44,3 +44,9 @@ springdoc:
     path: /api-docs
   swagger-ui:
     path: /swagger-ui.html
+
+grpc:
+  client:
+    payment-service:
+      address: static://localhost:9093
+      negotiation-type: plaintext
